@@ -1,0 +1,53 @@
+{
+  "name": "@rvaim/arkts_knowledge_search",
+  "version": "0.1.0",
+  "description": "独立提供 DevEco Code ArkTS 在线知识查询能力的 MCP 服务。",
+  "type": "module",
+  "bin": {
+    "arkts-knowledge-search": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "postbuild": "node -e \"require('node:fs').chmodSync('dist/index.js', 0o755)\"",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "prepack": "npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rvaim/arkts-knowledge-search.git"
+  },
+  "homepage": "https://github.com/rvaim/arkts-knowledge-search#readme",
+  "bugs": {
+    "url": "https://github.com/rvaim/arkts-knowledge-search/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "harmonyos",
+    "openharmony",
+    "arkts",
+    "arkui",
+    "deveco",
+    "knowledge-search",
+    "mcp"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}
