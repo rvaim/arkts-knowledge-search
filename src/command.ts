@@ -33,6 +33,7 @@ export const runCommand: CommandRunner = (
       env: options.env ?? process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
+      shell: false,
     });
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
@@ -107,25 +108,51 @@ export const runCommand: CommandRunner = (
     }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   });
 
-export async function runInteractiveLogin(loginUrl: string): Promise<void> {
-  const platform = process.platform;
-  const preferredBrowser = process.env.ARKTS_KNOWLEDGE_BROWSER?.trim();
+// Keep the URL out of command text: cmd.exe treats query separators as commands.
+const WINDOWS_BROWSER_SCRIPT = `try {
+  Start-Process -FilePath $env:ARKTS_KNOWLEDGE_LOGIN_URL -ErrorAction Stop
+} catch {
+  [Console]::Error.WriteLine('Unable to open the default browser.')
+  exit 1
+}`;
+
+interface BrowserOptions {
+  platform?: NodeJS.Platform;
+  env?: NodeJS.ProcessEnv;
+  runner?: CommandRunner;
+}
+
+export async function runInteractiveLogin(
+  loginUrl: string,
+  options: BrowserOptions = {}
+): Promise<void> {
+  const platform = options.platform ?? process.platform;
+  const env = options.env ?? process.env;
+  const preferredBrowser = env.ARKTS_KNOWLEDGE_BROWSER?.trim();
   const command =
     platform === 'darwin'
       ? 'open'
       : platform === 'win32'
-        ? 'cmd.exe'
+        ? 'powershell.exe'
         : 'xdg-open';
   const args =
     platform === 'win32'
-      ? ['/d', '/s', '/c', 'start', '', loginUrl]
+      ? [
+          '-NoProfile',
+          '-NonInteractive',
+          '-EncodedCommand',
+          Buffer.from(WINDOWS_BROWSER_SCRIPT, 'utf16le').toString('base64'),
+        ]
       : platform === 'darwin' && preferredBrowser
         ? ['-a', preferredBrowser, loginUrl]
       : [loginUrl];
 
-  const result = await runCommand(command, args, {
+  const result = await (options.runner ?? runCommand)(command, args, {
     timeoutMs: 30_000,
     maxOutputBytes: 1024 * 1024,
+    ...(platform === 'win32'
+      ? { env: { ...env, ARKTS_KNOWLEDGE_LOGIN_URL: loginUrl } }
+      : {}),
   });
   if (result.exitCode !== 0) {
     throw new KnowledgeError(
